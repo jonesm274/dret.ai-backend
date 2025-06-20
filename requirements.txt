@@ -1,0 +1,6 @@
+flask
+python-dotenv
+azure-ai-projects
+azure-core
+azure-ai-inference
+requests
