@@ -10,15 +10,16 @@ load_dotenv()
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
-# CORS setup for your Azure Static Web App frontend
 CORS(
     app,
-    origins=["https://jolly-pebble-092f82b03.2.azurestaticapps.net"],
+    origins=[
+        "https://jolly-pebble-092f82b03.2.azurestaticapps.net",
+        "https://www.smartlessons.co.uk"
+    ],
     supports_credentials=True,
     allow_headers=["Content-Type", "Authorization"]
 )
 
-# Azure setup
 credential = DefaultAzureCredential()
 project = AIProjectClient(
     credential=credential,
@@ -67,7 +68,6 @@ def ask():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Catch-all route for React app
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_react_app(path):
