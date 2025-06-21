@@ -10,7 +10,7 @@ load_dotenv()
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
-# Explicit CORS setup for your Azure Static Web App frontend
+# CORS setup for your Azure Static Web App frontend
 CORS(
     app,
     origins=["https://jolly-pebble-092f82b03.2.azurestaticapps.net"],
