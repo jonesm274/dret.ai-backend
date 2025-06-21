@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
@@ -8,6 +9,8 @@ import os
 load_dotenv()
 
 app = Flask(__name__, static_folder="static", static_url_path="")
+
+CORS(app)   # <-- NEW LINE
 
 # Azure setup
 credential = DefaultAzureCredential()
