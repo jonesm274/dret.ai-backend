@@ -14,7 +14,7 @@ CORS(
     app,
     origins=[
         "https://jolly-pebble-092f82b03.2.azurestaticapps.net",
-        "https://www.teachingtools.co.uk"
+        "https://www.teachingtools.co.uk",
         "https://teachingtools.co.uk"
     ],
     supports_credentials=True,
