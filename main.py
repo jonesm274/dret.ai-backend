@@ -33,12 +33,20 @@ def ask():
         data = request.json
         agent_id = data.get("agentId")
         message = data.get("message")
+        thread_id = data.get("threadId")
 
         if not agent_id or not message:
             return jsonify({"error": "Missing agentId or message."}), 400
 
-        thread = project.agents.threads.create()
-        thread_id = thread.id
+        if thread_id:
+            try:
+                thread = project.agents.threads.get(thread_id)
+            except Exception:
+                thread = project.agents.threads.create()
+                thread_id = thread.id
+        else:
+            thread = project.agents.threads.create()
+            thread_id = thread.id
 
         project.agents.messages.create(
             thread_id=thread_id,
@@ -60,11 +68,11 @@ def ask():
         )
 
         response = ""
-        for message in messages:
-            if message.role == "assistant" and message.text_messages:
-                response = message.text_messages[-1].text.value
+        for m in messages:
+            if m.role == "assistant" and m.text_messages:
+                response = m.text_messages[-1].text.value
 
-        return jsonify({"response": response})
+        return jsonify({"response": response, "threadId": thread_id})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
