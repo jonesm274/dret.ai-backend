@@ -73,8 +73,6 @@ def ask():
 def get_powerbi_embed_token():
     try:
         report_key = request.json.get("reportKey")
-        username = request.json.get("username", "anonymous@teachingtools.co.uk")
-        roles = request.json.get("roles", ["AllUsers"])
 
         report_config = POWERBI_REPORTS.get(report_key)
         if not report_config:
@@ -96,16 +94,15 @@ def get_powerbi_embed_token():
         token_response.raise_for_status()
         access_token = token_response.json()["access_token"]
 
-        embed_url = f"https://api.powerbi.com/v1.0/myorg/groups/{report_config['group_id']}/reports/{report_config['report_id']}/GenerateToken"
+        embed_url = (
+            f"https://api.powerbi.com/v1.0/myorg/groups/"
+            f"{report_config['group_id']}/reports/"
+            f"{report_config['report_id']}/GenerateToken"
+        )
+
+        # Minimal payload: no RLS/identities
         embed_payload = {
-            "accessLevel": "View",
-            "identities": [
-                {
-                    "username": username,
-                    "roles": roles,
-                    "datasets": [report_config["dataset_id"]]
-                }
-            ]
+            "accessLevel": "View"
         }
 
         headers = {
@@ -114,12 +111,21 @@ def get_powerbi_embed_token():
         }
 
         embed_response = requests.post(embed_url, json=embed_payload, headers=headers)
-        embed_response.raise_for_status()
+
+        # Print Power BI API error for easier troubleshooting if request fails
+        if not embed_response.ok:
+            print("Power BI API error:", embed_response.text)
+            embed_response.raise_for_status()
+
         embed_token = embed_response.json()["token"]
 
         return jsonify({
             "embedToken": embed_token,
-            "embedUrl": f"https://app.powerbi.com/reportEmbed?reportId={report_config['report_id']}&groupId={report_config['group_id']}",
+            "embedUrl": (
+                f"https://app.powerbi.com/reportEmbed"
+                f"?reportId={report_config['report_id']}"
+                f"&groupId={report_config['group_id']}"
+            ),
             "reportId": report_config["report_id"]
         })
 
