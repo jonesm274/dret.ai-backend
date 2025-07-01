@@ -1,3 +1,3 @@
 GROUP_ACCESS = {
-    "object-id-of-principals-group": ["report001", "report002"]
+    "fc33b641-1349-4006-96a3-85ea93af8c0f": ["report001", "report002"]
 }
