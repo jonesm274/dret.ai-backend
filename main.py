@@ -5,8 +5,10 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import ListSortOrder
 from config.report_id import POWERBI_REPORTS
+from config.access import GROUP_ACCESS
 import os
 import requests
+import jwt
 
 load_dotenv()
 
@@ -28,6 +30,31 @@ project = AIProjectClient(
     credential=credential,
     endpoint="https://dret-ai.services.ai.azure.com/api/projects/az-matthewj-3507"
 )
+
+def get_jwk():
+    """Fetch Azure AD public keys for validating JWTs."""
+    TENANT_ID = os.getenv("PBI_TENANT_ID")
+    OPENID_CONFIG_URL = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0/.well-known/openid-configuration"
+    resp = requests.get(OPENID_CONFIG_URL)
+    jwks_uri = resp.json()["jwks_uri"]
+    keys = requests.get(jwks_uri).json()["keys"]
+    return keys
+
+def get_user_groups_from_token(token):
+    """Extract Azure AD group Object IDs from JWT access token."""
+    keys = get_jwk()
+    unverified_header = jwt.get_unverified_header(token)
+    public_key = jwt.algorithms.RSAAlgorithm.from_jwk(
+        next(k for k in keys if k["kid"] == unverified_header["kid"])
+    )
+    payload = jwt.decode(
+        token,
+        public_key,
+        algorithms=["RS256"],
+        audience=os.getenv("PBI_CLIENT_ID"),  # This must match your Azure App Registration's client ID
+        options={"verify_exp": True}
+    )
+    return payload.get("groups", [])
 
 @app.route("/ask", methods=["POST"])
 def ask():
@@ -72,8 +99,28 @@ def ask():
 @app.route("/api/powerbi/embed-token", methods=["POST"])
 def get_powerbi_embed_token():
     try:
+        # --- Get access token from Authorization header ---
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Missing auth token"}), 401
+        token = auth_header.replace("Bearer ", "")
+        try:
+            user_groups = get_user_groups_from_token(token)
+        except Exception as e:
+            return jsonify({"error": f"Invalid token: {e}"}), 401
+
         report_key = request.json.get("reportKey")
 
+        # --- Authorise based on group membership ---
+        allowed = any(
+            report_key in reports
+            for group_id, reports in GROUP_ACCESS.items()
+            if group_id in user_groups
+        )
+        if not allowed:
+            return jsonify({"error": "Access denied"}), 403
+
+        # --- Existing Power BI embed token logic ---
         report_config = POWERBI_REPORTS.get(report_key)
         if not report_config:
             return jsonify({"error": "Invalid report key"}), 400
@@ -100,7 +147,6 @@ def get_powerbi_embed_token():
             f"{report_config['report_id']}/GenerateToken"
         )
 
-        # Minimal payload: no RLS/identities
         embed_payload = {
             "accessLevel": "View"
         }
@@ -111,8 +157,6 @@ def get_powerbi_embed_token():
         }
 
         embed_response = requests.post(embed_url, json=embed_payload, headers=headers)
-
-        # Print Power BI API error for easier troubleshooting if request fails
         if not embed_response.ok:
             print("Power BI API error:", embed_response.text)
             embed_response.raise_for_status()
