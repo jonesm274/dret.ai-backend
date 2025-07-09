@@ -7,8 +7,8 @@ POWERBI_REPORTS = {
         "group_id": "829bdcb0-220e-46d0-9a2f-821c725a8490"
     },
     "report002": {
-        "report_id": "abcdef12-3456-7890-abcd-1234567890ab",
-        "dataset_id": "PBI_DATASET_ID_REPORT002",
-        "group_id": "829bdcb0-220e-46d0-9a2f-821c725a8490"
+        "report_id": "fa354e20-d998-4b49-bcb8-a7858837baf7",
+        "dataset_id": "",
+        "group_id": "c526f3f7-eeac-4ca0-a178-e502c9488f23"
     }
 }
