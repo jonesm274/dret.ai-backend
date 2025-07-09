@@ -6,6 +6,14 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import ListSortOrder
 from config.report_id import POWERBI_REPORTS
 from config.access import GROUP_ACCESS
+from config.user_metrics import (
+    create_or_update_user,
+    log_interaction,
+    log_score,
+    get_user,
+    get_user_interactions,
+    get_user_scores
+)
 import os
 import requests
 import jwt
@@ -32,7 +40,6 @@ project = AIProjectClient(
 )
 
 def get_jwk():
-    """Fetch Azure AD public keys for validating JWTs."""
     TENANT_ID = os.getenv("PBI_TENANT_ID")
     OPENID_CONFIG_URL = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0/.well-known/openid-configuration"
     resp = requests.get(OPENID_CONFIG_URL)
@@ -41,7 +48,6 @@ def get_jwk():
     return keys
 
 def get_user_groups_from_token(token):
-    """Extract Azure AD group Object IDs from JWT access token."""
     keys = get_jwk()
     unverified_header = jwt.get_unverified_header(token)
     public_key = jwt.algorithms.RSAAlgorithm.from_jwk(
@@ -51,7 +57,7 @@ def get_user_groups_from_token(token):
         token,
         public_key,
         algorithms=["RS256"],
-        audience=os.getenv("PBI_CLIENT_ID"),  # This must match your Azure App Registration's client ID
+        audience=os.getenv("PBI_CLIENT_ID"),
         options={"verify_exp": True}
     )
     return payload.get("groups", [])
@@ -63,9 +69,15 @@ def ask():
         agent_id = data.get("agentId")
         message = data.get("message")
         thread_id = data.get("threadId")
+        user_id = data.get("userId")
+        user_name = data.get("userName")
+        year_group = data.get("yearGroup")
 
-        if not agent_id or not message:
-            return jsonify({"error": "Missing agentId or message."}), 400
+        if not agent_id or not message or not user_id:
+            return jsonify({"error": "Missing required fields."}), 400
+
+        create_or_update_user(user_id=user_id, name=user_name, year_group=year_group)
+        log_interaction(user_id=user_id, role="user", message=message)
 
         if thread_id:
             try:
@@ -91,6 +103,8 @@ def ask():
             if m.role == "assistant" and m.text_messages:
                 response = m.text_messages[-1].text.value
 
+        log_interaction(user_id=user_id, role="assistant", message=response)
+
         return jsonify({"response": response, "threadId": thread_id})
 
     except Exception as e:
@@ -99,7 +113,6 @@ def ask():
 @app.route("/api/powerbi/embed-token", methods=["POST"])
 def get_powerbi_embed_token():
     try:
-        # --- Get access token from Authorization header ---
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
             return jsonify({"error": "Missing auth token"}), 401
@@ -111,7 +124,6 @@ def get_powerbi_embed_token():
 
         report_key = request.json.get("reportKey")
 
-        # --- Authorise based on group membership ---
         allowed = any(
             report_key in reports
             for group_id, reports in GROUP_ACCESS.items()
@@ -120,7 +132,6 @@ def get_powerbi_embed_token():
         if not allowed:
             return jsonify({"error": "Access denied"}), 403
 
-        # --- Existing Power BI embed token logic ---
         report_config = POWERBI_REPORTS.get(report_key)
         if not report_config:
             return jsonify({"error": "Invalid report key"}), 400
