@@ -8,7 +8,7 @@ POWERBI_REPORTS = {
     },
     "report002": {
         "report_id": "fa354e20-d998-4b49-bcb8-a7858837baf7",
-        "dataset_id": "",
+        "dataset_id": "fa0c660b-fb94-4f49-ad1d-9de8a60b075c",
         "group_id": "c526f3f7-eeac-4ca0-a178-e502c9488f23"
     }
 }
