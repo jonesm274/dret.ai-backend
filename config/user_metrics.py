@@ -15,7 +15,7 @@ def create_or_update_user(user_id, name=None, year_group=None, subjects=None):
     c = conn.cursor()
     subjects_str = ",".join(subjects) if subjects else None
     
-    # Try to insert, or update if exists
+    # Try to insert, or, update if exists
     c.execute('''
         INSERT INTO users (id, name, year_group, subjects, last_active)
         VALUES (?, ?, ?, ?, ?)
