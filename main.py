@@ -6,7 +6,7 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import ListSortOrder
 from config.report_id import POWERBI_REPORTS
 from config.access import GROUP_ACCESS
-# DISABLED METRICS IMPORT
+# DISABLED METRICS IMPORT!
 # from config.user_metrics import (
 #     create_or_update_user,
 #     log_interaction,
