@@ -6,14 +6,15 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import ListSortOrder
 from config.report_id import POWERBI_REPORTS
 from config.access import GROUP_ACCESS
-from config.user_metrics import (
-    create_or_update_user,
-    log_interaction,
-    log_score,
-    get_user,
-    get_user_interactions,
-    get_user_scores
-)
+# DISABLED METRICS IMPORT
+# from config.user_metrics import (
+#     create_or_update_user,
+#     log_interaction,
+#     log_score,
+#     get_user,
+#     get_user_interactions,
+#     get_user_scores
+# )
 import os
 import requests
 import jwt
@@ -106,8 +107,9 @@ def tutor_ask():
         if not agent_id or not message or not user_id:
             return jsonify({"error": "Missing required fields."}), 400
 
-        create_or_update_user(user_id=user_id, name=user_name, year_group=year_group)
-        log_interaction(user_id=user_id, role="user", message=message)
+        # DISABLED METRIC LOGGING
+        # create_or_update_user(user_id=user_id, name=user_name, year_group=year_group)
+        # log_interaction(user_id=user_id, role="user", message=message)
 
         if thread_id:
             try:
@@ -131,7 +133,8 @@ def tutor_ask():
             if m.role == "assistant" and m.text_messages:
                 response = m.text_messages[-1].text.value
 
-        log_interaction(user_id=user_id, role="assistant", message=response)
+        # DISABLED METRIC LOGGING
+        # log_interaction(user_id=user_id, role="assistant", message=response)
 
         return jsonify({"response": response, "threadId": thread_id})
 
